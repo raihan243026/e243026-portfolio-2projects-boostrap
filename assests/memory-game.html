@@ -1,0 +1,241 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Memory Matching Game</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background-color: #f0f4f8;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 2rem;
+      color: #333;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .header p {
+      font-size: 1.2rem;
+      color: #666;
+    }
+
+    .game-container {
+      display: grid;
+      grid-template-columns: repeat(4, 100px);
+      gap: 10px;
+      max-width: 440px;
+      perspective: 1000px;
+    }
+
+    .card {
+      width: 100px;
+      height: 100px;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.5s;
+    }
+
+    /* Checkbox hack for flip effect */
+    .card input[type="checkbox"] {
+      display: none;
+    }
+
+    .card input[type="checkbox"]:checked + .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .card-inner {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      transform-style: preserve-3d;
+      transition: transform 0.5s;
+    }
+
+    .card-front,
+    .card-back {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      backface-visibility: hidden;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+
+    .card-front {
+      background-color: #3498db;
+      color: white;
+    }
+
+    .card-back {
+      background-color: #ecf0f1;
+      transform: rotateY(180deg);
+    }
+
+    /* Unique emoji backgrounds for matching pairs */
+    .emoji-1 .card-back { background: #e74c3c url('https://images.unsplash.com/photo-1513104890138-7c749659a680') center/cover; }
+    .emoji-2 .card-back { background: #2ecc71 url('https://images.unsplash.com/photo-1565299624946-b28f40a0ae38') center/cover; }
+    .emoji-3 .card-back { background: #f1c40f url('https://images.unsplash.com/photo-1604382354936-07c5d9983bd3') center/cover; }
+    .emoji-4 .card-back { background: #9b59b6 url('https://images.unsplash.com/photo-1540189549336-e6e99c3679fe') center/cover; }
+
+    .card:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .footer {
+      margin-top: 2rem;
+      text-align: center;
+      color: #666;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 500px) {
+      .game-container {
+        grid-template-columns: repeat(2, 100px);
+        max-width: 220px;
+      }
+      .header h1 {
+        font-size: 2rem;
+      }
+      .header p {
+        font-size: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Memory Matching Game</h1>
+    <p>Click cards to flip and find matching pairs!</p>
+  </div>
+
+  <div class="game-container">
+    <!-- Card Pair 1 -->
+    <label class="card emoji-1">
+      <input type="checkbox">
+      <div class="card-inner">
+        <div class="card-front">?</div>
+        <div class="card-back"></div>
+      </div>
+    </label>
+    <label class="card emoji-1">
+      <input type="checkbox">
+      <div class="card-inner">
+        <div class="card-front">?</div>
+        <div class="card-back"></div>
+      </div>
+    </label>
+    <!-- Card Pair 2 -->
+    <label class="card emoji-2">
+      <input type="checkbox">
+      <div class="card-inner">
+        <div class="card-front">?</div>
+        <div class="card-back"></div>
+      </div>
+    </label>
+    <label class="card emoji-2">
+      <input type="checkbox">
+      <div class="card-inner">
+        <div class="card-front">?</div>
+        <div class="card-back"></div>
+      </div>
+    </label>
+    <!-- Card Pair 3 -->
+    <label class="card emoji-3">
+      <input type="checkbox">
+      <div class="card-inner">
+        <div class="card-front">?</div>
+        <div class="card-back"></div>
+      </div>
+    </label>
+    <label class="card emoji-3">
+      <input type="checkbox">
+      <div class="card-inner">
+        <div class="card-front">?</div>
+        <div class="card-back"></div>
+      </div>
+    </label>
+    <!-- Card Pair 4 -->
+    <label class="card emoji-4">
+      <input type="checkbox">
+      <div class="card-inner">
+        <div class="card-front">?</div>
+        <div class="card-back"></div>
+      </div>
+    </label>
+    <label class="card emoji-4">
+      <input type="checkbox">
+      <div class="card-inner">
+        <div class="card-front">?</div>
+        <div class="card-back"></div>
+      </div>
+    </label>
+  </div>
+
+  <div class="footer">
+    <p>© 2025 Memory Matching Game. Built with HTML & CSS.</p>
+  </div>
+</body>
+</html>
